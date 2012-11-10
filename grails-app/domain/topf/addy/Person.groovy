@@ -10,8 +10,12 @@ class Person {
   String firstName
   String lastName
   Address address
+  String email = null
+  Date birthday = null
   
   static hasMany = [telNumbers: TelNumber]
+  
+  static transients = ['fullName']
   
   static constraints = {
     salutation (nullable: true)
@@ -19,6 +23,12 @@ class Person {
     firstName (blank: true)
     lastName (blank: true)
     address (nullable: true)
+    email (nullable: true)
+    birthday (nullable: true)
+  }
+  
+  String getFullName() {
+    "${firstName} ${lastName}"
   }
   
   String toString() {

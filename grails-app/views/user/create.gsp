@@ -1,5 +1,4 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-
 <html>
   <head>
     <meta name="layout" content="main" />
@@ -18,7 +17,7 @@
   <g:form action="save" >
     <div id="create-user" class="content scaffold-create" role="main">
       <topf:dialogField labelCode="user.name.label" field="name" instance="${userInstance}"/>
-      <topf:dialogCombo labelCode="user.name.label" field="person" instance="${userInstance}" fromClass="topf.addy.Person" />
+      <topf:dialogCombo labelCode="user.person.label" field="person" instance="${userInstance}" fromClass="topf.addy.Person" />
       <topf:dialogField labelCode="user.password.label" field="pwd" />
       <topf:dialogCheckBox labelCode="user.superUser.label" field="superUser" instance="${userInstance}" />
       <topf:dialogCheckBox labelCode="user.disabled.label" field="disabled" instance="${userInstance}" />

@@ -1,6 +1,8 @@
 package datentopf
 
 import org.codehaus.groovy.runtime.NullObject
+import grails.util.*
+
 class TopfTagLib {
 
   static namespace = 'topf'
@@ -25,15 +27,47 @@ class TopfTagLib {
   //  Buttons for dialogs
   //
 
+  /** Creates a standard button header
+   *  <topf:naviHeader buttons="['list', 'home', ..]" dbClass='' />
+   *
+  <div class="nav" role="navigation">
+  <ul>
+  <li><topf:homeButton/></li>
+  <li><topf:logoutButton/></li>
+  <li><topf:listButton dbClass="Address"/></li>
+  </ul>
+  </div>
+
+   * */
+  def naviHeader = {attrs ->
+    log.info "params are ${attrs}"
+    out << '<div class="nav" role="navigation">'
+    out << '<ul>'
+    def dbClass = attrs.dbClass
+    def args = ['dbClass': dbClass]
+    attrs.buttons.each { button ->
+      out << '<li>'
+      //      def extraContent = ""
+      //      if (button == list) extraContent = " dbClass"
+      out << this.invokeMethod("${button}Button", args)
+      out << '</li>'
+    }
+    out << '</ul>'
+    out << '</div>'
+  }
+  
+  
   /** Creates a standard home button for the ui
    */
   def homeButton = {
+    log.info "creating home button"
     out << """<a class="home" href="${createLink(uri: '/')}">"""
     out << g.message (code: "default.home.label")
     out << '</a>'
   }
   
   /** Creates a standard list button for the ui
+   *  <topf:listButton dbClass='..' />
    */
   def listButton = {attrs, body ->
     out << g.link (class: "list", action: "list") {
@@ -46,6 +80,15 @@ class TopfTagLib {
   def createButton = {attrs, body ->
     out << g.link (class: "create", action: "create") {
       g.message (code: "default.create.label", args: [attrs.dbClass])
+    }
+  }
+  
+  /** Creates a standard edit button for the ui
+   *@todo: Add better handling for id. E.g. provide object in call, get from there id plus dbClass.
+   */
+  def editButton = {attrs, body ->
+    out << g.link (class: "edit", action: "edit") {
+      g.message (code: "default.edit.label", args: [attrs.dbClass])
     }
   }
   
@@ -100,7 +143,7 @@ class TopfTagLib {
    * creates an checkbox including a label
    */
   def dialogCheckBox = { attrs ->
-    log.info "checkBox bean is ${attrs.bean}"
+    log.info "checkBox instance is ${attrs.instance}"
     def value = attrs.instance?."${attrs.field}"
     createDialogLabel (attrs)
     out << g.checkBox (name:attrs.field, value: value)
@@ -118,11 +161,28 @@ class TopfTagLib {
     def clazz = grailsApplication.getDomainClass(attrs.fromClass).newInstance()
     def fromList = clazz.metaClass.invokeStaticMethod(clazz, method, null)
     def value = attrs.instance?."${attrs.field}"?.id
-    log.info "Value is ${value}"
-    log.info "fromList is ${fromList}"
     out << g.select (id: field, name: "${field}.id",
       from: fromList, optionKey: 'id', class: "many-to-one")
   }
+
+  /**
+   *  generates a text entry field like the generated ones.
+   *  Usage:
+   *  <topf:dialogField label=<labelCode> instance=<instance> field=<field> />
+   *  labelCode: Code for label in the messages file
+   *  instance: the current instance, must not be null!
+   *  field: Name of field in bean 
+   */
+  def dialogDateChooser = { attrs ->
+    log.info "${attrs}"
+    def value = attrs.instance?."${attrs.field}"
+    log.info "value= ${value}"
+    createDialogLabel (attrs)
+    out << g.datePicker (name:attrs.field, value: value, precision:"day",
+      relativeYears: [-100..1], default: null, noSelection: ['':'-Choose-'] )
+    out << "</div>"
+  }
+
   /**
    * Creates the standard save button in the UI, using the grails 2 css formats
    */
@@ -139,31 +199,65 @@ class TopfTagLib {
    *  id: The id of the object to edit or delete
    *  delete: If det to yes, the delete button will also be created. Default is yes
    */
-  //  <g:form>
-  //    <fieldset class="buttons">
-  //      <g:hiddenField name="id" value="${persInstance?.id}" />
-  //      <g:link class="edit" action="edit" id="${persInstance?.id}">
-  //        <g:message code="default.button.edit.label" default="Edit" />
-  //      </g:link>
-  //      <g:actionSubmit class="delete" action="delete" value="${message(code: 'default.button.delete.label', default: 'Delete')}" onclick="return confirm('${message(code: 'default.button.delete.confirm.message', default: 'Are you sure?')}');" />
-  //    </fieldset>
-  //</g:form>
   def dialogEditButton ={ attrs ->
     log.info "attrs are ${attrs}"
     out << "<g:form>"
     out << "<fieldset class='buttons'/>" 
     out <<  g.hiddenField (name: 'id', value: attrs.id)
     out <<  g.link (class: 'edit', action: 'edit', id: attrs.id) {
-          g.message (code: "default.button.edit.label", default: "Editiere")
-        }
-        if (attrs?.delete != 'no') {
-           out << g.actionSubmit (class: 'delete', action: 'delete',
-            value: message(code: 'default.button.delete.label', default: 'Delete'))
-        }
+      g.message (code: "default.button.edit.label", default: "Editiere")
+    }
+    if (attrs?.delete != 'no') {
+      out << g.actionSubmit (class: 'delete', action: 'delete',
+        value: message(code: 'default.button.delete.label', default: 'Delete'))
+    }
     out << "</fieldset>"
     out << "</g:form>"
   }
 
+  /**
+   * Create an add button, to add person, telefon number or such
+   * To open the add dialog, to enter the data
+   * 
+   * <topf:dialogAddButton instance="" childDomain="" />
+   * 
+   * instance: to which we want to add an object
+   * childDomain: class of the new object (defined as String)
+   */
+  def dialogAddButton = { attrs ->
+    log.info "Creating add Button attrs are ${attrs}"
+    log.info "Instance is ${attrs.instance.class}"
+    out << '<fieldset class="buttons">'
+    def params = [id: attrs.instance.id, version: attrs.instance.version]
+    def domain = attrs.childDomain.capitalize()
+    def action = "add${domain}"
+    log.info "params are ${params}"    // uebergabeparameter ist eine Map!
+    out << g.link (class: 'edit', params: params, action: action) {
+      g.message (code: 'default.add.label', args: [domain])
+    }
+    out << '</fieldset>'
+  }
+  
+  /**
+   * Create an add button, to add person, telefon number or such
+   * To start the save process for the new object
+   * 
+   * <topf:dialogAddSaveButton instance="" childDomain="" />
+   * 
+   * instance: to which we want to add an object
+   * childDomain: class of the new object (defined as String)
+   */
+  def dialogAddSaveButton = { attrs ->
+    log.info "Creating AddSave  Button"
+    log.info "attrs are ${attrs}"
+    out << '<fieldset class="buttons">'
+    def domain = attrs.childDomain.capitalize()
+    def action = "addSave${domain}"
+    out << g.hiddenField (name: 'id', value: attrs.id)
+    out << g.submitButton (name: action, class: 'save', value: message (code: 'default.add.label', args: [domain]))
+    out << '</fieldset>'
+  }
+  
   /**
    * Displays flash error message and infos of errors in beans fields
    * <topf:dialogError instance="" /> 
@@ -204,7 +298,7 @@ class TopfTagLib {
   
   //
   //
-  // Elements to display data plus label
+  // Elements to display data plus label in standard Grails view
   
   /**
    * Displays a textfield
@@ -240,8 +334,8 @@ class TopfTagLib {
     out << g.formatBoolean(boolean: bool)
     out << '</span>'
     out << '</li>'
-    
   }
+
   private void createDisplayLabel (def labelCode) {
     out << '<li class="fieldcontain">'
     out << '<span class="property-label">'
@@ -268,12 +362,12 @@ class TopfTagLib {
   }
 
   //
-  // Elements to support creation of tables for display
+  // Elements to support creation of list tables for display (list view)
   // start all with 'table'
   //
 
   /**
-   *  Creates table header, includes the tags header and tr
+   *  Creates table header vor list-view, includes the tags header and tr
    *  <topf:tableHeader domain="" fields=["",""] />
    *  domain and fields are used to create the codes for the message map
    *  codes in the map must be: <domain>.<field>.label
@@ -281,19 +375,50 @@ class TopfTagLib {
    */
   def tableHeader = {attrs ->
     def fields = attrs.fields
-    out << '<head>'
-    out << '<tr>'
+    out << '<thead>'
+    out << '<tr><td></td>'                // Empty cell for buttons
     fields.each {field ->
       def code = "${attrs.domain}.${field}.label"
       def title = "${message(code: code)}" 
       out << g.sortableColumn(property: field, title: title)
     }
     out << '</tr>'
-    out << '</head>'
+    out << '</thead>'
   }
   
   /**
-   * to create the columns for the table, all must be Strings or booleans (true/false).
+   * Creates all rows for the table, Pagination not intended
+   * 
+   * <topf:tableBody instanceList="" fields=['f1', 'f2'] />
+   * 
+  <g:each in="${persInstanceList}" status="i" var="persInstance">
+  <tr class="${(i % 2) == 0 ? 'even' : 'odd'}">
+
+   */
+  def tableBody = { attrs ->
+    log.info "Params are ${attrs}"
+    out << '<tbody>'
+    attrs.instanceList.eachWithIndex() {instance, i ->
+      log.info "-- ${instance} : ${i}"
+      def clazz = "${(i % 2) == 0 ? 'even' : 'odd'}"
+      log.info "${clazz}"
+      out << '<tr class="'+clazz+'">'
+      out << '<td class="buttons">'
+      out << g.link (class: 'show', action: 'show', id: instance.id) {
+        g.message(code: 'default.button.show.label')
+      }
+      out << '</td>'
+      attrs.fields.each {field ->
+        out << '<td>'
+        out << fieldValue(bean: instance, field: field)
+        out << '</td>'
+      }
+      out << '</tr>'
+    }
+    out << '</tbody>'
+  }
+  /**
+   * to create the columns for the table (list view), all must be Strings or booleans (true/false).
    * <topf:tableFields instance="" fields=['', ''] select='n'/>
    * select indicates the index in field (starting with 0), which will be used to
    * add <g.link> to enable loading of the object (creates link in tables)
@@ -329,6 +454,42 @@ class TopfTagLib {
       out << topf.formatDateTime(date: date)
       out << '</td>'
     }    
+  }
+  
+  //
+  // Elements for show panels, where html-tables are used to structure the view
+  // old style
+  //
+  
+  /**
+   * Creates one row for the display, incl. <tr> tags
+   * <topf:viewRow instance=" fields="['f1', 'f2',..]" />
+   * 
+   * Label are with code  <instance.class>.<field>.label in message.properties
+   * stored
+   */
+
+  def viewRow = {attrs ->
+    log.info "attrs are ${attrs}"
+    def instance = attrs.instance
+    def instanceText = GrailsNameUtils.getShortName(instance.getClass()).toLowerCase()
+    def fields = attrs.fields
+    out << '<tr class="fieldcontain">'
+    fields.each { field ->
+      def value = instance?."${field}"
+      def labelCode = "${instanceText}.${field}.label"
+      out << '<td>'
+      out << '<span class="property-label">'
+      out << g.message (code: labelCode)
+      out << '</span>'
+      out << '</td>'
+      out << '<td>'
+      out << '<span class="property-value">'
+      out << g.fieldValue (bean: instance, field: field)
+      out << '</span>'
+      out << '</td>'
+    }
+    out << "</tr>"
   }
   
   //

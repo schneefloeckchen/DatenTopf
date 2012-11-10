@@ -103,7 +103,8 @@ log4j = {
            'org.hibernate',
            'net.sf.ehcache.hibernate'
       info 'grails.app.controllers.topf.HomeController'
-      info 'grails.app.domain.topf.Home'
+      info 'grails.app.controllers.topf.addy.AddressController'
+      error 'grails.app.domain.topf.Home'
       info 'grails.app.taglib.datentopf.TopfTagLib'
     }
   }

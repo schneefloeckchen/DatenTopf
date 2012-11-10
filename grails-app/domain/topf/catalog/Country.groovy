@@ -9,9 +9,9 @@ package topf.catalog
  */
 class Country extends BasCat {
 
-	Integer countryCode = null;   // for telephon numbers, no leading zeroes
+  Integer countryCode = null;   // for telephon numbers, no leading zeroes
 	
-    static constraints = {
-		countryCode ( min: 1)
-    }
+  static constraints = {
+    countryCode ( min: 1)
+  }
 }

@@ -16,6 +16,8 @@ class TelNumber {
 	String remark = ""
 	TelProvider provider = null
 	
+  static transients = ['fullNumber', 'telefonInfo']
+  
     static constraints = {
 		country (nullable: true)
 		telType (nullable: true)
@@ -24,6 +26,15 @@ class TelNumber {
 		remark (blank: true)
 		provider (nullable: true)
     }
+
+  /**
+   * SHows the full number including area and country code
+  */
+  String getFullNumber() {
+    country ? "00${country.countryCode}":'' + " (0)${areaCode} / ${telNumber}"
+  }
 	
-	
+  String getTelefonInfo() {
+    "${tellType}: ${getFullNumber()}"
+  }
 }

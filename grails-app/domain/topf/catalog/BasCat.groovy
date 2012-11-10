@@ -4,7 +4,7 @@ package topf.catalog
  *  All catalogs extend this class, expect that most catalogs
  *  do not need more code.
  *  
-*/
+ */
 
 class BasCat {
 
@@ -15,4 +15,7 @@ class BasCat {
     name (blank: false)
     remark (blank: true)
   }
+  
+  String toString() {name}
+
 }

@@ -17,8 +17,13 @@
         <li><topf:homeButton/></li>
         <li><topf:logoutButton/></li>
         <li><g:link class="list" action="catalogs"><g:message code="mainDialog.catalogs" /></g:link></li>
+        <li><g:link class="list" action="list" controller="address"><g:message code="mainDialog.address.list" /></g:link></li>
+        <li><g:link class="list" controller="address" action="create"><g:message code="mainDialog.address.add" /></g:link></li>
       </ul>
     </div>
-    <h1>Sample line</h1>
+    <div class="nav">
+      <g:link action="index" controller="person">Person</g:link>
+      <g:link action="index" controller="address">Address</g:link>
+    </div>
   </body>
 </html>

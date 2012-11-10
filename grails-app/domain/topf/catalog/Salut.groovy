@@ -9,4 +9,6 @@ class Salut extends BasCat {
 
   static constraints = {
   }
+  
+
 }
